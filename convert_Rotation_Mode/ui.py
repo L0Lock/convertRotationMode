@@ -2,6 +2,7 @@
 import bpy
 from bpy.types import Panel
 from bpy.types import Context
+from .utils import test_each_rmode_gimbal_lock, list_rotation_modes
 
 class VIEW3D_PT_convert_rotation_mode(Panel):
     bl_space_type = 'VIEW_3D'
@@ -42,6 +43,34 @@ class VIEW3D_PT_convert_rotation_mode(Panel):
         col.prop(CRM_Properties, "jumpInitFrame")
         col.prop(CRM_Properties, "preserveLocks")
         col.prop(CRM_Properties, "preserveSelection")
+
+class VIEW3D_PT_Gimbal_Lock_Calculator(Panel):
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = "Animation"
+    bl_parent_id = "VIEW3D_PT_convert_rotation_mode"
+    bl_label = "Gimbal Lock Calculator"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+
+        if not bpy.context.selected_pose_bones:
+            layout.label(text="Please Select a Bone.", icon='WARNING_LARGE')
+
+        # button to calculate axis_alignments on active bone
+        layout.operator("object.calculate_gimbal_lock", text="Calculate Gimbal Lock", icon='SETTINGS')
+
+        # if needs an operator, they would be written in operators.py
+        # once run, show here a table of each rotation mode and its axis alignment in percent
+
+        if context.scene.gimbal_lock_results:
+            try:
+                results = eval(context.scene.gimbal_lock_results)
+                for mode, value in zip(list_rotation_modes, results):
+                    layout.lavel(text=f"{mode}: {value * 100:1.f}")
+            except:
+                layout.lavel(text="Error displaying results", icon='WARNING_LARGE')
 
 class VIEW3D_PT_Rmodes_recommandations(Panel):
     bl_space_type = 'VIEW_3D'
@@ -100,5 +129,6 @@ class VIEW3D_PT_Rmodes_recommandations(Panel):
 
 panels = [
     VIEW3D_PT_convert_rotation_mode,
+    VIEW3D_PT_Current_Gimbal_Lock,
     VIEW3D_PT_Rmodes_recommandations,
 ]

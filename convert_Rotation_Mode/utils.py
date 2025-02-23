@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-import bpy, sys
+import bpy
+import sys
+import math
 from .ui import panels
 
 def devOut(context, msg):
@@ -61,3 +63,34 @@ def update_panel(self, context):
 
     except Exception as e:
         print("\n[{}]\n{}\n\nError:\n{}".format(__package__, message, e))
+
+list_rotation_modes: list[str] = [
+    "XYZ",
+    "XZY",
+    "YXZ",
+    "YZX",
+    "ZXY",
+    "ZYX"
+]
+
+def test_each_rmode_gimbal_lock(obj: bpy.types.Object) -> list[float]:
+    """Calculates gimbal lock risk for each rotation mode."""
+    axis_alignments: list[float] = []
+
+    # maybe create here a copy of the obj to avoid potential interference?
+    for rmode in list_rotation_modes:
+        if len(rmode) > 3:
+            axis_alignments.append(0.0)
+        else:
+            obj.rotation_mode = rmode
+            axis_alignments.append(calculate_axis_alignment(obj, rmode))
+
+    return axis_alignments
+
+def calculate_axis_alignment(obj: bpy.types.Object, rmode) -> float:
+    """Determines how close an object is to gimbal lock."""
+    secondary_axis_rotation: float = math.degrees(obj.rotation_euler[1])
+
+    axis_alignment: float = abs(((secondary_axis_rotation + 90) % 180) - 90) / 90
+
+    return axis_alignment

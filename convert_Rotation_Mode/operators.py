@@ -2,7 +2,14 @@
 import bpy
 from bpy.types import Operator
 from bpy.types import Context
-from .utils import devOut, is_pose_mode, get_fcurves, toggle_rotation_locks, jump_next_frame
+from .utils import(
+    devOut,
+    is_pose_mode,
+    get_fcurves,
+    toggle_rotation_locks,
+    jump_next_frame,
+    test_each_rmode_gimbal_lock
+    )
 
 class CRM_OT_convert_rotation_mode(Operator):
     bl_idname = "crm.convert_rotation_mode"
@@ -102,3 +109,36 @@ class CRM_OT_convert_rotation_mode(Operator):
 
         scene.tool_settings.use_keyframe_insert_auto = has_autokey
         return {'FINISHED'}
+
+
+class CRM_OT_CalculateGimbalLock(bpy.types.Operator):
+    """Calculate Gimbal Lock Risk for Each Rotation Mode"""
+    bl_idname = "object.calculate_gimbal_lock"
+    bl_label = "Calculate Gimbal Lock"
+    bl_description = "Calculate the Gimbal Lock of each rotation mode at the current frame to let you chose which one would work best."
+    # bl_options = {'UNDO', 'INTERNAL'}
+
+    # @classmethod
+    # def poll(cls, context):
+    #     if context.preferences.addons.find("copy_global_transform") != -1 and bpy.context.mode == 'POSE':
+    #             return len(context.selected_pose_bones) > 0
+    #     return False > 0
+
+
+    def execute(self, context):
+        obj = context.active_object
+        if not obj or obj.type != 'ARMATURE' or not context.active_pose_bone:
+            self.report({'ERROR'}, "Select a pose bone.")
+            return {'CANCELLED'}
+
+        pose_bone = context.active_pose_bone
+        axis_alignments = test_each_rmode_gimbal_lock(pose_bone)
+
+        context.scene.gimbal_lock_results = str(axis_alignments)
+        return {'FINISHED'}
+
+def register():
+    bpy.types.Scene.gimbal_lock_results = bpy.props.StringProperty(name="Gimbal Lock Results")
+
+def unregister():
+    del bpy.types.Scene.gimbal_lock_results
